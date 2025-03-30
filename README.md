@@ -143,3 +143,10 @@ Aquí, el ** Ryzen 9 7950X **  muestra un rendimiento ** un 84% mayor **  que el
 ## Variación del tiempo del programa de acuerdo a la frecuencia en una ESP32
 
 ![](./.img/esp32freq.jpeg)
+
+El código implementado realiza operaciones aritméticas simples sobre grandes cantidades de datos, utilizando tanto enteros como números flotantes. Este procesamiento fue ejecutado en una placa ESP32 bajo distintas frecuencias de reloj: **80 MHz**, **160 MHz** y **240 MHz**. En cada caso se midió el tiempo de ejecución utilizando `millis()` para cada tipo de operación.
+
+Los resultados muestran que el **tiempo de ejecución disminuye claramente al aumentar la frecuencia del procesador**,  de manera **directamente proporcional a la velocidad de la CPU**. Por ejemplo, al duplicar la frecuencia de 80 MHz a 160 MHz, los tiempos para las sumas de enteros y floats se reducen aproximadamente a la mitad, y al triplicar la frecuencia (a 240 MHz), los tiempos vuelven a caer en proporción.
+
+Además, se observa que las **operaciones con números flotantes tardan considerablemente más** que las de enteros, debido al mayor costo computacional que implica la aritmética en punto flotante.
+
