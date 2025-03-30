@@ -2,10 +2,25 @@
 
 ## Tutorial de gprof
 
-1. Creación de los archivos y ejecución del código
-2. Ejecución de gprof
-3. Archivo analysis.txt
-4. Customizando la salida usando flags
+** 1. Creación de los archivos y ejecución del código **
+![](./.img/gprof1)
+** 2. Ejecución de gprof **
+![](./.img/gprof2)
+** 3. Archivo analysis.txt **
+![](./.img/gprof3)
+** 4. Customizando la salida usando flags **
+    + 4.1 Supresión de funciones declaradas estáticamente usando -a
+    ![](./.img/gprof4)
+    ![](./.img/gprof5)
+    + 4.2 Eliminación de textos detallados usando -b
+    ![](./.img/gprof6)
+    + 4.3 Impresión de sólo el perfil plano
+    ![](./.img/gprof7)
+    + 4.4 Impresión de información relacionada con funciones específicas en perfil plano
+    ![](./.img/gprof8)
+** 5. Uso de perf
+![](./.img/gprof9)
+![](./.img/gprof10)
 
 ## Benchmarks
 
@@ -49,7 +64,7 @@ Existen numerosos tipos de benchmarks, cada uno enfocado en áreas específicas 
 
 | Actividad | Benchmark representativo |
 | :---:     | :---:                    |
-| Navegación web, multitarea en entornos virtuales     | Geekbench (simula escenarios reales |
+| Navegación web, multitarea en entornos virtuales     | Geekbench (simula escenarios reales) |
 | Programación y compilación de proyectos pesados | Phoronix -- test "build-linux-kernel" |
 | Gaming | 3DMark |
 
@@ -60,7 +75,7 @@ A continuación, se muestra el cálculo del rendimiento de cada procesador —ex
 ### Datos de referencia
 
 - **Intel Core i5:** 83 segundos.
-- **AMD Ryzen 9 9500X** 97 segundos.
+- **AMD Ryzen 9 9500X:** 97 segundos.
 
 ## Cálculo de Rendimiento Absoluto
 
