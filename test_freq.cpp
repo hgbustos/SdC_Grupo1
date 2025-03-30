@@ -11,7 +11,7 @@ void ejecutarTest(int frecuenciaMHz) {
   // --------- Bucle de enteros ---------
   unsigned long tInicio = millis();
   volatile long sumaEnteros = 0;
-  long repeticionesEnteros = 200000000; // Ajustar según tu tiempo deseado
+  long repeticionesEnteros = 200000000; 
 
   for (long i = 0; i < repeticionesEnteros; i++) {
     sumaEnteros += i;
