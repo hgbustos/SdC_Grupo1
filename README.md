@@ -2,42 +2,42 @@
 
 ## Tutorial de gprof
 
-** 1. Creación de los archivos y ejecución del código **
+**1. Creación de los archivos y ejecución del código**
 
-![](./.img/gprof1)
+![](./.img/gprof1.png)
 
-** 2. Ejecución de gprof **
+**2. Ejecución de gprof**
 
-![](./.img/gprof2)
+![](./.img/gprof2.png)
 
-** 3. Archivo analysis.txt **
+**3. Archivo analysis.txt**
 
-![](./.img/gprof3)
+![](./.img/gprof3.png)
 
-** 4. Customizando la salida usando flags **
+**4. Customizando la salida usando flags**
 
-    + 4.1 Supresión de funciones declaradas estáticamente usando -a
+    + **4.1 Supresión de funciones declaradas estáticamente usando -a**
 
-    ![](./.img/gprof4)
-    ![](./.img/gprof5)
+    ![](./.img/gprof4.png)
+    ![](./.img/gprof5.png)
 
-    + 4.2 Eliminación de textos detallados usando -b
+    + 4.2 **Eliminación de textos detallados usando -b**
 
-    ![](./.img/gprof6)
+    ![](./.img/gprof6.png)
 
-    + 4.3 Impresión de sólo el perfil plano
+    + 4.3 **Impresión de sólo el perfil plano**
 
-    ![](./.img/gprof7)
+    ![](./.img/gprof7.png)
 
-    + 4.4 Impresión de información relacionada con funciones específicas en perfil plano
+    + 4.4 **Impresión de información relacionada con funciones específicas en perfil plano**
 
-    ![](./.img/gprof8)
+    ![](./.img/gprof8.png)
 
-** 5. Uso de perf
+**5. Uso de perf**
 
-![](./.img/gprof9)
+![](./.img/gprof9.png)
 
-![](./.img/gprof10)
+![](./.img/gprof10.png)
 
 ## Benchmarks
 
@@ -102,11 +102,11 @@ $$ Rendimiento = {1 \over Tiempo de compilación}$$
 
 En consecuencia, para cada procesador se obtiene:
 
-** 1. Intel Core i5 **
+**1. Intel Core i5**
 
 $$ Rendimiento_{i5} = {1 \over 83} \approx 0.0120 $$  
 
-** 2. AMD Ryzen 9 5900x**
+**2. AMD Ryzen 9 5900x**
 
 $$ Rendimiento = {1 \over Tiempo de compilación} \approx 0.0103 $$  
 
@@ -122,13 +122,13 @@ Este cociente indica que el ** Intel Core i5 obtiene un desempeño aproximadamen
 
 Para cuantificar el incremento de rendimiento que aporta el Ryzen 9 7950X respecto a los otros modelos, se comparan directamente los valores obtenidos:
 
-** 1. 7950X vs. Intel Core i5
+**1. 7950X vs. Intel Core i5**
 
 $$ { Rendimiento_{7950X} \over Rendimiento_{i5} } = { 0.0189 /over 0.0120 } \approx 1,58 $$
 
 En términos porcentuales, esto equivale a decir que el ** Ryzen 9 7950X ** ofrece un rendimiento ** un 58% superior ** frente al Intel Core i5 para la tarea de compilación del kernel (53 s vs. 83 s).
 
-** 2. 7950X vs. Ryzen 9 5900X 
+**2. 7950X vs. Ryzen 9 5900X**
 
 $$ { Rendimiento_{7950X} \over Rendimiento_{6900X} } = { 0.0189 /over 0.0103 } \approx 1,84 $$
 
