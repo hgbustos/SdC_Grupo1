@@ -33,7 +33,13 @@
 
     ![](./.img/gprof8.png)
 
-**5. Uso de perf**
+**5. Gráfico de los resultados**
+
+Creamos una visualización de la salida de gprof usando gprof2dot.
+
+![](./.img/gprof2dot.jpeg)
+
+**6. Uso de perf**
 
 ![](./.img/gprof9.png)
 
@@ -134,3 +140,6 @@ $$ { Rendimiento_{7950X} \over Rendimiento_{6900X} } = { 0.0189 /over 0.0103 } \
 
 Aquí, el ** Ryzen 9 7950X **  muestra un rendimiento ** un 84% mayor **  que el Ryzen 9 5900X (53 s vs. 97 s).
 
+## Variación del tiempo del programa de acuerdo a la frecuencia en una ESP32
+
+![](./.img/esp32freq.jpeg)
