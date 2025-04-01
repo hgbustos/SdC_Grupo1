@@ -1,8 +1,19 @@
-# SdC_TP1
+# 🖥️ Trabajo Práctico N.º 1 – Sistemas de Computación
 
-## Tutorial de gprof
+## 📌 Contenidos
 
-**1. Creación de los archivos y ejecución del código**
+- [📊 Benchmarking]
+- [📈 Profiling con gprof y perf]
+- [⚙️ Cálculo de Rendimiento y Speedup]
+- [📶 Rendimiento en ESP32 según frecuencia]
+- [🧑‍💻 Autores]
+
+
+## 📈 Profiling con gprof y perf
+
+Se utilizó `gprof` para analizar el comportamiento del programa, generando reportes e imágenes:
+
+### Proceso
 
 ![](./.img/gprof1.png)
 
@@ -45,7 +56,7 @@ Creamos una visualización de la salida de gprof usando gprof2dot.
 
 ![](./.img/gprof10.png)
 
-## Benchmarks
+## 📊 Benchmarking
 
 En el ámbito de la computación, el término *benchmark* hace referencia a un conjunto de pruebas o procedimientos diseñados para evaluar cuantitativamente el rendimiento de un sistema informático en un entorno controlado. La finalidad principal de estas mediciones es ofrecer métricas objetivas que posibiliten la comparación equitativa de diferentes configuraciones de hardware o software. De este modo, los benchmarks constituyen una herramienta esencial para identificar cuellos de botella, determinar la eficacia de posibles optimizaciones y guiar la toma de decisiones al momento de seleccionar componentes o ajustar parámetros del sistema (Smith et al., 2020). 
 
@@ -91,7 +102,7 @@ Existen numerosos tipos de benchmarks, cada uno enfocado en áreas específicas 
 | Programación y compilación de proyectos pesados | Phoronix -- test "build-linux-kernel" |
 | Gaming | 3DMark |
 
-## Rendimiento
+## ⚙️ Cálculo de Rendimiento y Speedup
 
 A continuación, se muestra el cálculo del rendimiento de cada procesador —expresado como el inverso del tiempo de compilación del kernel de Linux—, así como la comparación relativa entre ambos.
 
@@ -140,7 +151,7 @@ $$ { Rendimiento_{7950X} \over Rendimiento_{6900X} } = { 0.0189 /over 0.0103 } \
 
 Aquí, el ** Ryzen 9 7950X **  muestra un rendimiento ** un 84% mayor **  que el Ryzen 9 5900X (53 s vs. 97 s).
 
-## Variación del tiempo del programa de acuerdo a la frecuencia en una ESP32
+## 📶 Rendimiento en ESP32 según frecuencia
 
 ![](./.img/esp32freq.jpeg)
 
@@ -149,4 +160,8 @@ El código implementado realiza operaciones aritméticas simples sobre grandes c
 Los resultados muestran que el **tiempo de ejecución disminuye claramente al aumentar la frecuencia del procesador**,  de manera **directamente proporcional a la velocidad de la CPU**. Por ejemplo, al duplicar la frecuencia de 80 MHz a 160 MHz, los tiempos para las sumas de enteros y floats se reducen aproximadamente a la mitad, y al triplicar la frecuencia (a 240 MHz), los tiempos vuelven a caer en proporción.
 
 Además, se observa que las **operaciones con números flotantes tardan considerablemente más** que las de enteros, debido al mayor costo computacional que implica la aritmética en punto flotante.
+
+## 🧑‍💻 Autores
+
+Francisco Javier Vasquez
 
