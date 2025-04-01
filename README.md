@@ -162,6 +162,6 @@ Los resultados muestran que el **tiempo de ejecución disminuye claramente al au
 Además, se observa que las **operaciones con números flotantes tardan considerablemente más** que las de enteros, debido al mayor costo computacional que implica la aritmética en punto flotante.
 
 ## 🧑‍💻 Autores
+Hugo Gabriel Bustos
 
 Francisco Javier Vasquez
-Hugo Gabriel Bustos
