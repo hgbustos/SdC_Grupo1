@@ -16,22 +16,22 @@
 
 **4. Customizando la salida usando flags**
 
-    + **4.1 Supresión de funciones declaradas estáticamente usando -a**
+**1. Supresión de funciones declaradas estáticamente usando -a**
 
-    ![](./.img/gprof4.png)
-    ![](./.img/gprof5.png)
+   ![](./.img/gprof4.png)
+   ![](./.img/gprof5.png)
 
-    + 4.2 **Eliminación de textos detallados usando -b**
+**2. Eliminación de textos detallados usando -b**
 
-    ![](./.img/gprof6.png)
+   ![](./.img/gprof6.png)
 
-    + 4.3 **Impresión de sólo el perfil plano**
+**3. Impresión de sólo el perfil plano**
 
-    ![](./.img/gprof7.png)
+   ![](./.img/gprof7.png)
 
-    + 4.4 **Impresión de información relacionada con funciones específicas en perfil plano**
+**4. Impresión de información relacionada con funciones específicas en perfil plano**
 
-    ![](./.img/gprof8.png)
+   ![](./.img/gprof8.png)
 
 **5. Gráfico de los resultados**
 
