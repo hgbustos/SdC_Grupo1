@@ -56,3 +56,5 @@ _process_gini_asm:
     mov esp, ebp      ; Restaurar puntero de pila (descarta locales si las hubiera)
     pop ebp           ; Restaurar puntero base anterior
     ret               ; Retornar al llamador (C). Resultado en EAX.
+
+    section .note.GNU-stack noexec    ; Marcar la pila como no ejecutable (buena práctica)
