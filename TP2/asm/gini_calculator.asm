@@ -1,6 +1,5 @@
 ; Archivo: TP2/asm/gini_calculator.asm
-; Autor: [Tu Nombre/Grupo]
-; Fecha: [Fecha Actual]
+; Autor: Grupo1
 ; Descripción: Rutina en ensamblador (NASM) para procesar el índice GINI.
 ;              Sigue la convención de llamada cdecl (32 bits).
 ;              - Recibe: un float (32 bits) en la pila ([ebp+8]).

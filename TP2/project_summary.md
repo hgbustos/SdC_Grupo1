@@ -287,8 +287,7 @@ except Exception as e:
 
 ```assembly
 ; Archivo: TP2/asm/gini_calculator.asm
-; Autor: [Tu Nombre/Grupo]
-; Fecha: [Fecha Actual]
+; Autor: Grupo1
 ; Descripción: Rutina en ensamblador (NASM) para procesar el índice GINI.
 ;              Sigue la convención de llamada cdecl (32 bits).
 ;              - Recibe: un float (32 bits) en la pila ([ebp+8]).
@@ -440,8 +439,7 @@ def call_c_function(gini_float):
     try:
         print(f"Cargando biblioteca C (32-bit) desde: {LIB_PATH} usando msl-loadlib")
         
-        # Cargar la biblioteca usando LoadLibrary especificando arquitectura 32 bits y convención cdecl
-        # Usar 'with' para asegurar la correcta liberación de recursos del servidor 32 bits
+        # LINEA CONFLICTIVA! no lo pude hacer andar en mi compu
         with LoadLibrary(LIB_PATH, libtype='cdll') as lib_wrapper:
             lib_c = lib_wrapper.lib # Acceder al objeto library real
 
