@@ -37,6 +37,7 @@ C_SOURCES_LIB = $(filter-out $(SRC_DIR_C)/debug_main.c, $(wildcard $(SRC_DIR_C)/
 ASM_SOURCES = $(wildcard $(SRC_DIR_ASM)/*.asm)
 C_DEBUG_SOURCE = $(SRC_DIR_C)/debug_main.c
 PY_MAIN = $(SRC_DIR_PY)/main.py
+PY_MAIN_32 = $(SRC_DIR_PY)/main32.py 
 
 # --- Archivos Objeto ---
 # Objeto para el wrapper C de la librería
@@ -93,6 +94,10 @@ run: $(LIB_TARGET)
 	@echo "=== Ejecutando Script Python $(PY_MAIN) ==="
 	$(PYTHON) $(PY_MAIN)
 
+run32: $(LIB_TARGET)
+	@echo "=== Ejecutando Script Python 32 bits (ctypes) $(PY_MAIN_32) ==="
+	$(PYTHON) $(PY_MAIN_32) # <--- Ejecuta main32.py
+
 debug: $(DEBUG_TARGET)
 	@echo "=== Iniciando GDB para $(DEBUG_TARGET) ==="
 	gdb $(DEBUG_TARGET)
@@ -103,4 +108,4 @@ clean:
 	@echo "Limpieza completada."
 
 # Phony targets: No son archivos, son comandos
-.PHONY: all run debug clean
+.PHONY: all run run32 debug clean
