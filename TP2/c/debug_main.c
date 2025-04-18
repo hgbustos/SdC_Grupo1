@@ -23,7 +23,7 @@ int main() {
     
     // --- Punto de interés 1: Antes de llamar a ASM ---
     printf("[DEBUG] Punto 1: Inmediatamente antes de llamar a _process_gini_asm.\n");
-    printf("          Inspeccionar pila (esp) y registros (ebp) aquí.\n");
+    printf("     Aqui se debe inspeccionar pila (esp) y registros (ebp) aquí.\n");
     // Colocar breakpoint en GDB en la siguiente línea (llamada a ASM)
     
     result = _process_gini_asm(test_value); // Llamada a la función ensamblador
