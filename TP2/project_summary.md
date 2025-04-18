@@ -2,17 +2,19 @@
 
 ```
 TP2 (Raíz)/
+  |-- Consigna.txt
   |-- Makefile
   |-- Readme.md
   |-- generate_sumary.py
-asm/
-  |-- gini_calculator.asm
 python/
   |-- main.py
+  |-- main32.py
 c/
   |-- debug_main.c
   |-- gini_processor.c
   |-- gini_processor.h
+asm/
+  |-- gini_calculator.asm
 ```
 
 ---
@@ -61,6 +63,7 @@ C_SOURCES_LIB = $(filter-out $(SRC_DIR_C)/debug_main.c, $(wildcard $(SRC_DIR_C)/
 ASM_SOURCES = $(wildcard $(SRC_DIR_ASM)/*.asm)
 C_DEBUG_SOURCE = $(SRC_DIR_C)/debug_main.c
 PY_MAIN = $(SRC_DIR_PY)/main.py
+PY_MAIN_32 = $(SRC_DIR_PY)/main32.py 
 
 # --- Archivos Objeto ---
 # Objeto para el wrapper C de la librería
@@ -117,6 +120,10 @@ run: $(LIB_TARGET)
 	@echo "=== Ejecutando Script Python $(PY_MAIN) ==="
 	$(PYTHON) $(PY_MAIN)
 
+run32: $(LIB_TARGET)
+	@echo "=== Ejecutando Script Python 32 bits (ctypes) $(PY_MAIN_32) ==="
+	$(PYTHON) $(PY_MAIN_32) # <--- Ejecuta main32.py
+
 debug: $(DEBUG_TARGET)
 	@echo "=== Iniciando GDB para $(DEBUG_TARGET) ==="
 	gdb $(DEBUG_TARGET)
@@ -127,7 +134,7 @@ clean:
 	@echo "Limpieza completada."
 
 # Phony targets: No son archivos, son comandos
-.PHONY: all run debug clean
+.PHONY: all run run32 debug clean
 ```
 
 ---
@@ -283,72 +290,6 @@ except Exception as e:
 
 ---
 
-### `asm/gini_calculator.asm`
-
-```assembly
-; Archivo: TP2/asm/gini_calculator.asm
-; Autor: Grupo1
-; Descripción: Rutina en ensamblador (NASM) para procesar el índice GINI.
-;              Sigue la convención de llamada cdecl (32 bits).
-;              - Recibe: un float (32 bits) en la pila ([ebp+8]).
-;              - Proceso: Convierte el float a entero (truncando) usando FPU,
-;                         luego suma 1 al resultado entero.
-;              - Devuelve: un int (32 bits) en el registro EAX.
-; Compilación: nasm -f elf -g -F dwarf TP2/asm/gini_calculator.asm -o TP2/obj/gini_calculator.o
-
-section .data
-    ; No se necesitan datos inicializados en este ejemplo
-
-section .bss
-    ; No se necesita espacio no inicializado en este ejemplo
-
-section .text
-    global _process_gini_asm ; Exportar símbolo para que sea visible desde C
-
-_process_gini_asm:
-    ; --- Prólogo estándar cdecl ---
-    push ebp          ; Guardar el puntero base anterior
-    mov ebp, esp      ; Establecer el nuevo puntero base
-
-    ; --- Acceso al parámetro (float) ---
-    ; La pila ahora luce así (direcciones bajas arriba):
-    ; esp -> [ebp]       <- valor anterior de ebp
-    ;        [ebp+4]    <- dirección de retorno (pusheada por CALL)
-    ;        [ebp+8]    <- parámetro float gini_value (primer argumento)
-
-    ; --- Procesamiento con FPU ---
-    ; Cargar el valor flotante (DWORD = 32 bits) desde la pila [ebp+8] 
-    ; a la cima del stack FPU (ST0)
-    fld dword [ebp + 8]   
-
-    ; Reservar espacio temporal en la pila para el resultado entero (DWORD = 4 bytes)
-    sub esp, 4        
-                      
-    ; Convertir el float en ST0 a entero (32 bits) y guardarlo en la pila ([esp])
-    ; FISTP: Integer Store and Pop. Usa el modo de redondeo actual (normalmente truncar hacia cero).
-    ;        Guarda el entero en memoria y hace pop del stack FPU.
-    fistp dword [esp] 
-    
-    ; Recuperar el entero convertido desde la pila al registro EAX (registro de retorno para int)
-    mov eax, [esp]    
-    
-    ; Liberar el espacio temporal reservado en la pila (restaurar esp)
-    add esp, 4        
-
-    ; --- Cálculo final ---
-    ; Sumar 1 al resultado entero en EAX
-    add eax, 1        
-
-    ; --- Epílogo estándar cdecl ---
-    mov esp, ebp      ; Restaurar puntero de pila (descarta locales si las hubiera)
-    pop ebp           ; Restaurar puntero base anterior
-    ret               ; Retornar al llamador (C). Resultado en EAX.
-
-    section .note.GNU-stack noexec    ; Marcar la pila como no ejecutable (buena práctica)
-```
-
----
-
 ### `python/main.py`
 
 ```python
@@ -489,6 +430,163 @@ if __name__ == "__main__":
 
 ---
 
+### `python/main32.py`
+
+```python
+# Archivo: python/main32.py
+# Descripción: Versión del script principal para ejecutar en un entorno Python 32 bits.
+#              Utiliza la librería estándar 'ctypes' para cargar la biblioteca C 32 bits.
+#              (No requiere msl-loadlib).
+
+import requests
+import ctypes # <--- Se usa ctypes estándar
+import os
+import sys
+
+# --- Configuración ---
+# URL de la API del Banco Mundial para el índice GINI de Argentina (ARG)
+API_URL = "https://api.worldbank.org/v2/country/ARG/indicator/SI.POV.GINI?format=json&date=2011:2023&per_page=100"
+
+# Nombre y ruta de la biblioteca C compartida (32 bits)
+# Asume que este script está en TP2/python/ y la lib en TP2/lib/
+LIB_NAME = 'libgini_processor.so' 
+LIB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'lib', LIB_NAME)
+
+# --- Funciones ---
+
+def fetch_latest_gini():
+    """
+    Obtiene el valor más reciente del índice GINI para Argentina desde la API del Banco Mundial.
+    (Esta función es idéntica a la versión original)
+
+    Returns:
+        float: El valor GINI más reciente encontrado, o None si ocurre un error.
+    """
+    print(f"Consultando API: {API_URL}")
+    try:
+        response = requests.get(API_URL, timeout=10) # Añadir timeout
+        response.raise_for_status() # Lanza excepción si hay error HTTP (4xx o 5xx)
+        
+        data = response.json()
+        
+        # La API devuelve una lista, el primer elemento [0] es metadata, el [1] son los datos
+        if len(data) < 2 or not data[1]:
+            print("Error: No se encontraron datos de indicadores en la respuesta de la API.")
+            return None
+
+        # Buscar el valor no nulo más reciente
+        latest_value = None
+        latest_year = 0
+        for entry in data[1]:
+            if entry.get('value') is not None: # Usar .get() para seguridad
+                try:
+                    year = int(entry['date'])
+                    value = float(entry['value'])
+                    if year > latest_year:
+                        latest_year = year
+                        latest_value = value
+                except (ValueError, TypeError):
+                    # Ignorar entradas con formato inválido
+                    continue 
+        
+        if latest_value is not None:
+            print(f"Valor GINI más reciente encontrado ({latest_year}): {latest_value:.2f}")
+            return latest_value 
+        else:
+            print("Error: No se encontraron valores GINI válidos en el rango de fechas.")
+            return None
+
+    except requests.exceptions.Timeout:
+        print(f"Error: Timeout al conectar con la API.")
+        return None
+    except requests.exceptions.RequestException as e:
+        print(f"Error al conectar con la API: {e}")
+        return None
+    except (ValueError, IndexError, TypeError, KeyError) as e:
+         print(f"Error procesando la respuesta JSON: {e}")
+         return None
+
+
+def call_c_function(gini_float):
+    """
+    Carga la biblioteca C de 32 bits y llama a la función process_gini_c 
+    usando ctypes estándar (adecuado para Python 32 bits cargando lib 32 bits).
+
+    Args:
+        gini_float (float): El valor GINI a procesar.
+
+    Returns:
+        int: El resultado devuelto por la función C (que llama a ASM), o None si falla.
+    """
+    if gini_float is None:
+        print("No se puede llamar a la función C sin un valor GINI válido.")
+        return None
+            
+    try:
+        print(f"Cargando biblioteca C (32-bit) desde: {LIB_PATH} usando ctypes")
+        
+        # --- Carga directa con ctypes.CDLL ---
+        # Verifica si la librería existe antes de intentar cargarla
+        if not os.path.exists(LIB_PATH):
+             raise FileNotFoundError(f"No se encontró la biblioteca en: {LIB_PATH}")
+
+        lib_c = ctypes.CDLL(LIB_PATH) 
+        # --------------------------------------
+
+        # Definir el prototipo de la función C/ASM (sigue igual)
+        # Asegúrate que el nombre '_process_gini_c' coincida con el exportado por tu lib C
+        process_gini_func = lib_c.process_gini_c 
+        process_gini_func.argtypes = [ctypes.c_float]
+        process_gini_func.restype = ctypes.c_int
+        
+        # Llamar a la función C (sigue igual)
+        print(f"Llamando a C/ASM: process_gini_c({gini_float:.2f})")
+        result_int = process_gini_func(ctypes.c_float(gini_float))
+        
+        print(f"Resultado recibido de C/ASM: {result_int}")
+        return result_int
+
+    except FileNotFoundError as e:
+        print(f"Error Crítico: {e}")
+        print("Verifica que la ruta sea correcta y que hayas compilado la biblioteca (ej. 'make all').")
+        return None
+    except OSError as e: # ctypes lanza OSError si hay problemas al cargar (ej: dependencias faltantes, formato incorrecto)
+        print(f"Error al cargar o enlazar la biblioteca C '{LIB_PATH}' con ctypes: {e}")
+        print("Asegúrate de haber compilado la biblioteca C correctamente para 32 bits.")
+        return None
+    except AttributeError as e: # Si la función 'process_gini_c' no se encuentra en la lib
+        print(f"Error: No se encontró la función 'process_gini_c' en la biblioteca '{LIB_NAME}'. {e}")
+        print("Verifica que la función esté declarada como 'extern' en C y exportada correctamente.")
+        return None
+    except Exception as e: # Captura otros errores inesperados
+        print(f"Error inesperado al interactuar con la biblioteca C: {e}")
+        return None
+
+# --- Ejecución Principal ---
+# (Esta parte es idéntica a la versión original)
+
+if __name__ == "__main__":
+    print("--- Iniciando TP2 Sistemas de Computación (Versión 32 bits) ---")
+    
+    # 1. Obtener datos de la API
+    gini_value = fetch_latest_gini()
+    
+    # 2. Si obtuvimos datos, llamar a la función C/ASM
+    if gini_value is not None:
+        final_result = call_c_function(gini_value)
+        
+        if final_result is not None:
+            print(f"\n>> Resultado final (GINI {gini_value:.2f} procesado por C->ASM): {final_result}")
+        else:
+            print("\n>> No se pudo obtener el resultado final de la función C/ASM.")
+    else:
+        print("\n>> No se pudo obtener el valor GINI de la API.")
+        
+    print("\n--- Fin TP2 (Versión 32 bits) ---")
+```
+
+---
+
 ### `c/debug_main.c`
 
 ```c
@@ -517,7 +615,7 @@ int main() {
     
     // --- Punto de interés 1: Antes de llamar a ASM ---
     printf("[DEBUG] Punto 1: Inmediatamente antes de llamar a _process_gini_asm.\n");
-    printf("          Inspeccionar pila (esp) y registros (ebp) aquí.\n");
+    printf("     Aqui se debe inspeccionar pila (esp) y registros (ebp) aquí.\n");
     // Colocar breakpoint en GDB en la siguiente línea (llamada a ASM)
     
     result = _process_gini_asm(test_value); // Llamada a la función ensamblador
@@ -595,6 +693,72 @@ int process_gini_c(float gini_value) {
 int process_gini_c(float gini_value);
 
 #endif // GINI_PROCESSOR_H
+```
+
+---
+
+### `asm/gini_calculator.asm`
+
+```assembly
+; Archivo: TP2/asm/gini_calculator.asm
+; Autor: Grupo1
+; Descripción: Rutina en ensamblador (NASM) para procesar el índice GINI.
+;              Sigue la convención de llamada cdecl (32 bits).
+;              - Recibe: un float (32 bits) en la pila ([ebp+8]).
+;              - Proceso: Convierte el float a entero (truncando) usando FPU,
+;                         luego suma 1 al resultado entero.
+;              - Devuelve: un int (32 bits) en el registro EAX.
+; Compilación: nasm -f elf -g -F dwarf TP2/asm/gini_calculator.asm -o TP2/obj/gini_calculator.o
+
+section .data
+    ; No se necesitan datos inicializados en este ejemplo
+
+section .bss
+    ; No se necesita espacio no inicializado en este ejemplo
+
+section .text
+    global _process_gini_asm ; Exportar símbolo para que sea visible desde C
+
+_process_gini_asm:
+    ; --- Prólogo estándar cdecl ---
+    push ebp          ; Guardar el puntero base anterior
+    mov ebp, esp      ; Establecer el nuevo puntero base
+
+    ; --- Acceso al parámetro (float) ---
+    ; La pila ahora luce así (direcciones bajas arriba):
+    ; esp -> [ebp]       <- valor anterior de ebp
+    ;        [ebp+4]    <- dirección de retorno (pusheada por CALL)
+    ;        [ebp+8]    <- parámetro float gini_value (primer argumento)
+
+    ; --- Procesamiento con FPU ---
+    ; Cargar el valor flotante (DWORD = 32 bits) desde la pila [ebp+8] 
+    ; a la cima del stack FPU (ST0)
+    fld dword [ebp + 8]   
+
+    ; Reservar espacio temporal en la pila para el resultado entero (DWORD = 4 bytes)
+    sub esp, 4        
+                      
+    ; Convertir el float en ST0 a entero (32 bits) y guardarlo en la pila ([esp])
+    ; FISTP: Integer Store and Pop. Usa el modo de redondeo actual (normalmente truncar hacia cero).
+    ;        Guarda el entero en memoria y hace pop del stack FPU.
+    fistp dword [esp] 
+    
+    ; Recuperar el entero convertido desde la pila al registro EAX (registro de retorno para int)
+    mov eax, [esp]    
+    
+    ; Liberar el espacio temporal reservado en la pila (restaurar esp)
+    add esp, 4        
+
+    ; --- Cálculo final ---
+    ; Sumar 1 al resultado entero en EAX
+    add eax, 1        
+
+    ; --- Epílogo estándar cdecl ---
+    mov esp, ebp      ; Restaurar puntero de pila (descarta locales si las hubiera)
+    pop ebp           ; Restaurar puntero base anterior
+    ret               ; Retornar al llamador (C). Resultado en EAX.
+
+    section .note.GNU-stack noexec    ; Marcar la pila como no ejecutable (buena práctica)
 ```
 
 ---
