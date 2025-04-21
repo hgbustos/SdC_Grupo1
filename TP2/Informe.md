@@ -5,7 +5,7 @@
 
 **Integrantes:**
 *   Vasquez Francisco Javier - 43812221 - javier.vasquez@mi.unc.edu.ar
-
+*    Facundo Nicolas Rodriguez - 39473648 - facundo.n.rodriguez@mi.unc.edu.ar
 
 **Fecha de entrega:** 21/04/2025
 
