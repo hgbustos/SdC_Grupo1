@@ -1,23 +1,28 @@
 # TP2 - Sistemas de Computación: API REST, Python, C y Ensamblador
 
+## Integrantes
+
+ [Vasquez Francisco Javier](mailto:javier.vasquez@mi.unc.edu.ar)
+
+
 ## Descripción del Proyecto
 
 Este proyecto corresponde al Trabajo Práctico N°2 de la materia Sistemas de Computación. El objetivo es implementar un sistema multicapa que:
 
-1.  Obtiene el índice GINI de Argentina desde una API REST pública (Banco Mundial) utilizando Python.
-2.  Pasa el valor GINI (float) obtenido a una capa intermedia implementada en C.
+1.  Obtiene el índice GINI de Argentina desde una API REST pública (Banco Mundial) utilizando Python (64 bits).
+2.  Pasa el valor GINI (float) obtenido a una capa intermedia implementada en C (compilada a 32 bits).
 3.  La capa C invoca una rutina escrita en lenguaje Ensamblador (NASM, 32 bits).
-4.  La rutina en Ensamblador convierte el valor float a entero (truncando), le suma 1, y devuelve el resultado entero.
+4.  La rutina en Ensamblador convierte el valor float a entero (utilizando el redondeo por defecto de FPU, p.ej. 40.7 -> 41), le suma 1 (resultado: 42), y devuelve el resultado entero.
 5.  La comunicación entre C y Ensamblador se realiza utilizando la pila, siguiendo la convención de llamada `cdecl` de 32 bits.
 6.  El resultado final es devuelto a las capas superiores (C y luego Python) para ser mostrado.
 
-Se utiliza la librería `msl-loadlib` en Python para permitir la interacción entre el intérprete Python (generalmente 64 bits) y la biblioteca C/Ensamblador compilada para 32 bits.
+Se utiliza la librería `msl-loadlib` en Python para permitir la interacción entre el intérprete Python principal (64 bits) y la biblioteca C/Ensamblador compilada para 32 bits. Esto se logra mediante un modelo Cliente (64 bits) / Servidor (32 bits).
 
 **Importante:** Un requisito clave del TP es demostrar el funcionamiento de la llamada C -> Ensamblador y el manejo de la pila utilizando el depurador GDB sobre un ejecutable de prueba C puro.
 
 ## Prerrequisitos e Instalación
 
-Asegúrate de tener instalado lo siguiente en un sistema **Linux** (probado en Ubuntu 22.04 LTS 64 bits):
+Asegúrate de tener instalado lo siguiente en un sistema **Linux** (probado en Ubuntu 22.04/23.10+ LTS 64 bits):
 
 1.  **Herramientas de Construcción Esenciales:**
     ```bash
@@ -32,103 +37,108 @@ Asegúrate de tener instalado lo siguiente en un sistema **Linux** (probado en U
     ```
     *(Necesarias para compilar código C/C++ para 32 bits con la opción `-m32`)*.
 
-3.  **Python 3 (64 bits) y Pip:**
+3.  **Python 3 (64 bits), Pip y Venv:**
+    *   Pip es el gestor de paquetes de Python.
+    *   Venv es necesario para crear entornos virtuales (altamente recomendado).
     ```bash
-    sudo apt install python3 python3-pip python3-venv
+    # Asegúrate que la versión de python3-venv coincida con tu python3 principal
+    sudo apt install python3 python3-pip python3-venv 
     ```
-    *(La versión de 64 bits es para ejecutar el script principal `main.py`)*.
+    *(Si usas una versión específica como python3.12, sería `sudo apt install python3.12-venv`)*.
 
-4.  **Python 3 (¡¡32 bits!!) - CRÍTICO para `make run`:**
-    *   `msl-loadlib` necesita un intérprete Python de 32 bits para poder cargar la biblioteca `.so` de 32 bits desde el script Python de 64 bits.
-    *   **Paso 1: Habilitar arquitectura i386:**
+4.  **Dependencias de 32 bits para el Puente Python (msl-loadlib):**
+    *   `msl-loadlib` necesita componentes de 32 bits para ejecutar su servidor y cargar la librería.
+    *   **Paso 1: Habilitar arquitectura i386 (si no está habilitada):**
         ```bash
         sudo dpkg --add-architecture i386
         sudo apt update
         ```
-    *   **Paso 2: Intentar instalar Python 3 para i386:**
+    *   **Paso 2: Instalar Python 3 y Librerías de Desarrollo (32 bits):**
         ```bash
         # Intenta instalar la versión genérica primero
-        sudo apt install python3:i386
+        sudo apt install python3:i386 libpython3-dev:i386
         ```
-        *   **Nota:** La instalación de `python3:i386` puede fallar debido a conflictos de dependencias en algunas versiones de Ubuntu/Debian. Si falla, lamentablemente la ejecución de `make run` (el flujo Python completo) no será posible en esa máquina sin resolver manualmente las dependencias o usar otra estrategia.
-    *   **Paso 3 (Si la instalación funcionó):** Verifica dónde se instaló (p. ej., `/usr/bin/python3.X:i386`) y confirma su arquitectura con `file /ruta/al/python3_32bit`.
 
-5.  **Dependencias de Python (usando Entorno Virtual):**
+    *   **Paso 3: Instalar Zlib (32 bits) - Dependencia de msl-loadlib:**
+        ```bash
+        sudo apt install zlib1g:i386
+        ```
+        *(Necesario para que el ejecutable `server32-linux` de msl-loadlib pueda iniciarse).*
+
+
+5.  **Configurar Entorno Virtual Python:**
     *   **Crear y Activar Entorno Virtual (Recomendado):**
         ```bash
-        # Desde la raíz del proyecto clonado
+        # Desde la raíz del proyecto clonado (TuRepositorio/)
         python3 -m venv venv
         source venv/bin/activate
-        # Para desactivar: deactivate
+        # Para desactivar cuando termines: deactivate
         ```
-    *   **Instalar Librerías:**
-        ```bash
-        # Asegúrate de tener un archivo requirements.txt con:
-        # requests
-        # msl-loadlib
-        pip install -r requirements.txt
-        ```
-        *(Crea un archivo `requirements.txt` en la raíz con las dos líneas anteriores)*
+        *(Asegúrate de reactivar el entorno (`source venv/bin/activate`) cada vez que abras una nueva terminal para trabajar en el proyecto).*
 
-## Estructura del Proyecto
+        ## Estructura del Proyecto
 
-TP2 (Raíz)/
-|-- Makefile # Automatiza compilación, ejecución y limpieza
-|-- requirements.txt # Dependencias de Python
-|-- README.md # Este archivo
-|-- generate_summary.py # Script para generar resumen (opcional)
-|-- asm/
-| |-- gini_calculator.asm # Rutina principal en Ensamblador
-|-- python/
-| |-- main.py # Script principal: API -> C -> ASM -> Resultado
-|-- c/
-| |-- debug_main.c # Programa C puro para depurar ASM con GDB
-| |-- gini_processor.c # Wrapper C que llama a la función ASM
-| |-- gini_processor.h # Header para el wrapper C
-|-- obj/ # (Generado) Archivos objeto compilados
-|-- lib/ # (Generado) Biblioteca compartida (.so)
-|-- bin/ # (Generado) Ejecutable de depuración
-|-- venv/ # (Opcional) Directorio del entorno virtual Python
-
-
+        ```plaintext
+        TP2 (Raíz)/
+        ├── .gitignore               
+        ├── Makefile                  
+        ├── README.md                 
+        ├── asm/
+        │   └── gini_calculator.asm   
+        ├── c/
+        │   ├── debug_main.c          
+        │   ├── gini_processor.c      
+        │   └── gini_processor.h      
+        └── python/
+            ├── main.py               
+            ├── main32.py             
+            └── server32_bridge.py    
 ## Cómo Compilar y Ejecutar
 
-*   **Asegúrate de tener el entorno virtual Python activado (`source venv/bin/activate`) si lo usas.**
+*   **¡IMPORTANTE! Asegúrate de tener el entorno virtual Python activado (`source venv/bin/activate`) antes de ejecutar los comandos `make run` o `python ...`.**
 
-1.  **Compilar Todo:** Compila la librería C/ASM de 32 bits (`.so`) y el ejecutable C de depuración de 32 bits (`debug_app`).
+1.  **Compilar Todo:** Compila la librería C/ASM de 32 bits (`lib/libgini_processor.so`) y el ejecutable C de depuración de 32 bits (`bin/debug_app`).
     ```bash
     make all
     ```
 
-2.  **Ejecutar Flujo Completo (Python -> C -> ASM):**
+2.  **Ejecutar Flujo Completo (Python 64b -> 32b -> C -> ASM):**
     ```bash
     make run
     ```
-    *   **¡Requiere que Python 3 (32 bits) esté instalado y sea encontrable por `msl-loadlib`!**
-    *   Este comando ejecuta `python/main.py`. Obtendrá el GINI de la API, lo pasará a la librería `.so` (usando `msl-loadlib` como puente), y mostrará el resultado final (GINI convertido a entero + 1).
-    *   Si obtienes el error `wrong ELF class: ELFCLASS32`, significa que `msl-loadlib` no pudo usar/encontrar el intérprete Python de 32 bits. Revisa la sección de Prerrequisitos.
+    *   **¡Requiere que Python 3 (32 bits), `libpython3-dev:i386` y `zlib1g:i386` estén instalados!** (Ver Prerrequisitos).
+    *   Este comando ejecuta `python/main.py` (el cliente 64 bits). Obtendrá el GINI de la API, lo pasará a la librería `.so` a través del puente `msl-loadlib` (que lanza `server32_bridge.py`), y mostrará el resultado final (GINI redondeado + 1).
+    *   Si falla, revisa los mensajes de error (especialmente los de `[Client64]` y `[Server32]`) y la sección de Troubleshooting.
 
-3.  **Ejecutar Programa de Depuración C Puro:**
+3.  **Ejecutar Programa de Depuración C Puro (32 bits):**
     ```bash
     ./bin/debug_app
     ```
-    *   Este comando ejecuta directamente el programa C que llama a la función ASM, sin pasar por Python. Ambos (`debug_app` y la rutina ASM) son de 32 bits, por lo que **debería funcionar** incluso si `make run` falla por problemas de `msl-loadlib`.
-    *   Salida esperada: `Resultado recibido de ASM: 43` (para el valor de prueba 42.75f).
+    *   Este comando ejecuta directamente el programa C que llama a la función ASM, sin pasar por Python. Ambos (`debug_app` y la rutina ASM) son de 32 bits, por lo que **debería funcionar** incluso si `make run` falla por problemas con el puente Python 64/32 bits.
+    *   Salida esperada: `Resultado recibido de ASM: 43` (para el valor de prueba 42.75f, ya que 42.75 se redondea a 43 y se le suma 1). *Corrección: Mi análisis anterior era incorrecto, 42.75 se redondea a 43 con FPU.*
 
-4.  **Iniciar Depuración con GDB:**
+4.  **Iniciar Depuración con GDB (32 bits):**
     ```bash
     make debug
     ```
     *   Inicia GDB cargando el ejecutable `bin/debug_app`. Consulta la sección "Depuración con GDB" a continuación.
 
-5.  **Limpiar Archivos Generados:** Elimina los directorios `obj`, `lib` y `bin`.
+5.  **Ejecutar Script Python 32 bits Directo (Opcional / Test Alternativo):**
+    *   Este script (`python/main32.py`) intenta cargar la librería `.so` directamente usando `ctypes`. **Requiere ejecutarlo con un intérprete Python 3 de 32 bits.**
+    ```bash
+    # Necesitas la ruta al ejecutable Python de 32 bits
+    /ruta/a/tu/python3_32bit python/main32.py
+    ```
+    *   Es útil para verificar que la librería `.so` funciona con `ctypes` en un entorno puramente 32 bits, aislando problemas de `msl-loadlib`.
+
+6.  **Limpiar Archivos Generados:** Elimina los directorios `obj/`, `lib/` y `bin/`.
     ```bash
     make clean
     ```
 
 ## Depuración con GDB (¡Obligatorio para el TP!)
 
-El objetivo es usar GDB con `bin/debug_app` para verificar la convención de llamada `cdecl` y el paso de parámetros por la pila entre C y Ensamblador.
+El objetivo es usar GDB con `bin/debug_app` para verificar la convención de llamada `cdecl` y el paso de parámetros/retorno por la pila y registros entre C y Ensamblador.
 
 1.  **Iniciar GDB:**
     ```bash
@@ -148,37 +158,30 @@ El objetivo es usar GDB con `bin/debug_app` para verificar la convención de lla
 3.  **Ejecutar y Avanzar:**
     *   `run`: Inicia la ejecución hasta el primer breakpoint.
     *   `c` o `continue`: Continúa hasta el siguiente breakpoint.
-    *   `layout split` (o `layout reg`, `layout asm`): Muestra registros, código fuente/ASM. Muy útil.
+    *   `layout split` (o `layout reg`, `layout asm`): Muestra registros, código fuente/ASM. Muy útil. Presiona `Ctrl+L` para refrescar la pantalla si se desordena.
     *   `ni` (next instruction): Ejecuta la siguiente instrucción ASM (salta sobre `call`).
     *   `si` (step instruction): Ejecuta la siguiente instrucción ASM (entra en `call`).
 
 4.  **Inspeccionar Registros y Memoria (Pila):**
-    *   `info registers eax ebp esp`: Muestra los registros clave.
-    *   `x/16xw $esp`: Examina 16 "words" (4 bytes cada una, en hexadecimal) desde la dirección actual del puntero de pila (`esp`).
-    *   `x/4xw $ebp`: Examina 4 "words" desde el puntero base (`ebp`). Esto es útil *dentro* de la función ASM para ver:
-        *   `[ebp]` -> EBP del llamador (guardado por `push ebp`).
-        *   `[ebp+4]` -> Dirección de retorno (guardada por `call`).
-        *   `[ebp+8]` -> **El parámetro float `test_value`** (primer argumento pasado por C).
+    *   `info registers eax ebp esp`: Muestra los registros clave. `eax` para el retorno, `ebp`/`esp` para la pila.
+    *   `x/16xw $esp`: Examina 16 "words" (4 bytes cada una, en hexadecimal) desde la dirección actual del puntero de pila (`esp`). Útil para ver qué hay *antes* de establecer el frame de la función ASM.
+    *   `x/8xw $ebp`: Examina 8 "words" desde el puntero base (`ebp`). Esto es útil *dentro* de la función ASM (después de `mov ebp, esp`) para ver:
+        *   `[ebp]` -> Valor de EBP del llamador (guardado por `push ebp`).
+        *   `[ebp+4]` -> Dirección de retorno a `debug_main.c` (guardada por `call`).
+        *   `[ebp+8]` -> **El parámetro float `test_value`** (primer argumento pasado por C). Debería ser `0x422b0000` para 42.75f.
+        *   `[ebp-X]` -> Variables locales de ASM (si las hubiera, como el espacio reservado con `sub esp, 4`).
 
 5.  **¿Qué Observar?**
-    *   **Antes de la llamada:** ¿Cómo está la pila? (Puede que no veas el parámetro directamente si `gcc` lo optimiza pasándolo por registro FPU antes de la llamada final, pero la dirección de retorno estará después del `call`).
-    *   **Dentro de `_process_gini_asm` (después del prólogo):** Verifica que `[ebp]` contenga el EBP anterior, `[ebp+4]` la dirección de retorno a `debug_main.c`, y `[ebp+8]` los 4 bytes correspondientes al float `42.75f` (Hex: `0x422b0000`).
-    *   **Antes del `ret`:** Verifica que `EAX` contenga el resultado esperado (43).
-    *   **Después de volver a C:** Verifica que `EAX` todavía contenga 43 (ya que `result` se asigna desde `EAX`) y que `ESP` y `EBP` se hayan restaurado correctamente.
+    *   **Antes de la llamada (en C):** Observa `esp`.
+    *   **Dentro de `_process_gini_asm` (después del prólogo `mov ebp, esp`):** Verifica los valores en `[ebp]`, `[ebp+4]`, y especialmente `[ebp+8]` para confirmar que el parámetro float llegó correctamente por la pila.
+    *   **Antes del `ret` en ASM:** Verifica que `EAX` contenga el resultado esperado (43).
+    *   **Después de volver a C (antes del `printf`):** Verifica que `EAX` todavía contenga 43 (el valor retornado) y que `ESP` y `EBP` se hayan restaurado a los valores que tenían antes de la llamada (aproximadamente).
 
 ## Troubleshooting
 
-*   **Error `wrong ELF class: ELFCLASS32` durante `make run`:**
-    *   **Causa:** Python 64 bits no puede cargar la librería `.so` de 32 bits directamente, y `msl-loadlib` no encontró un intérprete Python 3 de 32 bits para crear el puente necesario.
-    *   **Solución:** Asegúrate de haber instalado `python3:i386` (ver Prerrequisitos). Si lo instalaste pero sigue fallando, `msl-loadlib` podría no encontrarlo. Puedes indicarle la ruta explícitamente con una variable de entorno:
-        ```bash
-        export MSL_LOADLIB_PYTHON32_EXE=/ruta/a/tu/python3_32bit
-        make run
-        ```
-        (Reemplaza `/ruta/a/tu/python3_32bit` con la ruta real).
+*   **Error `FATAL ERROR [Client64]: ... Timeout ... Could not connect ... /msl/loadlib/server32-linux: error while loading shared libraries: XXX.so.Y: cannot open shared object file: No such file or directory` durante `make run`:**
+    *   **Causa:** El componente servidor 32 bits de `msl-loadlib` no pudo iniciarse porque le falta una dependencia de 32 bits (como `libz.so.1` o `libpython3.X.so.1`).
+    *   **Solución:** Instala la versión `:i386` de la librería faltante. Ej: `sudo apt install zlib1g:i386` o `sudo apt install libpython3.X:i386` (reemplaza X con la versión correcta). Asegúrate también de tener `python3:i386` y `libpython3-dev:i386` instalados.
 *   **Problemas al instalar `python3:i386`:** Puede haber conflictos de dependencias complejos. Intenta buscar soluciones específicas para tu distribución y versión de Linux o considera probar en otra máquina/VM si es posible.
 *   **Errores de compilación (`make all`):** Asegúrate de tener `build-essential`, `nasm`, `gcc-multilib`, `g++-multilib` instalados.
-
-## Autores
-
-    Vasquez Francisco Javier
+*   **Otros errores de `msl-loadlib`:** Revisa la salida de `[Client64]` y `[Server32]` para obtener pistas. Puede ser un error en `server32_bridge.py` o un problema al cargar `libgini_processor.so` desde el servidor 32 bits.
