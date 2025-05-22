@@ -1,24 +1,25 @@
-	.code16 ; Instrucciones de 16 bits
-	cli ; Deshabilitamos interrupciones
+.code16 # Instrucciones de 16 bits
+	cli  /* Deshabilitamos interrupciones */
 
-	xor ax, ax
-	mov ds, ax ; De osdever. Pone DS en 0.
+	xor %ax, %ax
+	mov %ax, %ds /* De osdever. Pone DS en 0. */
 
-	lgdt [gdt_desc] ; Cargamos la tabla de descriptores
+	lgdt gdt_desc /* Cargamos la tabla de descriptores. Parentesis? */
 
-	mov eax, cr0
-	or eax, 1
-	mov cr0, eax ; Seteamos en 1 el bit 0 de cr0
+	mov %cr0, %eax
+	or  $0x1, %eax
+	mov %eax, %cr0 /* Seteamos en 1 el bit 0 de cr0 */
 
-	jmp 08h:main
+	ljmp $0x08, $main
 
-	.code32
+.code32
+
 main:
-	mov ax, 10h
-	mov ds, ax
-	mov ss, ax
+	mov $0x10, %ax
+	mov %ax, %ds
+	mov %ax, %ss
 
-	mov esp, 090000h ;No entiendo bien esto
+	mov $0x090000, %esp  /*osdever*/
 
 hang:
 	jmp hang
@@ -26,30 +27,27 @@ hang:
 gdt:
 
 gdt_null:
-	dd 0
-	dd 0
+	.long 0x0 /* Con o sin $? */
+	.long 0x0
 
 gdt_code:
-        dw 0FFFFh
-        dw 0
-        db 0
-        db 10010010b
-        db 11001111b
-        db 0
+        .word 0x0FFFF
+        .word 0x0
+        .byte 0x0
+        .byte 0b10010010
+        .byte 0b11001111
+        .byte 0x0
 
-gdt_data:               ; Data segment, read only, expand down
-        dw 0FFFFh
-        dw 0
-        db 0
-        db 10010000b ; Write access disabled
-        db 11001111b
-        db 0
+gdt_data:               /* Data segment, read only, expand down */
+        .word 0x0FFFF
+        .word 0x0
+        .byte 0x0
+        .byte 0b10010000
+	.byte 0b11001111
+        .byte 0x0
 
 gdt_end:
 
 gdt_desc:
-	dw gdt_end - gdt - 1
-	dd gdt
-
-times 510-($-$$) db 0 ;Llena el archivo con ceros.
-	dw 0AA55h ; Identificador del sector de inicio
+	.word gdt_end - gdt - 1
+	.long gdt

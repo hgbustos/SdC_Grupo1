@@ -49,13 +49,5 @@ gdt_data:               /* Data segment, read/write, expand down */
 gdt_end:
 
 gdt_desc:
-	/*El bare metal no tiene el menos uno. Sin $*/
 	.word gdt_end - gdt - 1
 	.long gdt
-
-	/* Llena el archivo con ceros. */
-	/*times 510-($-$$) .byte 0  */
-	/*.rept 510-($-$$) .byte 0x0 */
-	/*.endr */
-	/* Identificador del sector de inicio */
-	.word 0x0AA55
