@@ -1,0 +1,7 @@
+
+Generación de Claves (en practico/04_kernel_signing/keys/)
+Comando ejecutado: openssl req -new -x509 -newkey rsa:2048 -keyout MOK.priv -outform DER -out MOK.der -nodes -days 36500 -subj "/CN=javi-TP4-KernelKey/"
+Salida: (Generación de claves RSA, mostrando '+++++' y '.' durante la creación de aleatoriedad)
+Archivos creados: MOK.priv, MOK.der
+
+sudo /usr/src/linux-headers-$(uname -r)/scripts/sign-file sha256 ./keys/MOK.priv ./keys/MOK.der ./module_to_sign/hostname_module.ko

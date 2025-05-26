@@ -1,0 +1,35 @@
+--- Contenido de available_modules_sample.txt ---
+Generado el: sáb 24 may 2025 21:01:12 -03
+Kernel: 6.11.0-26-generic
+
+--- Listado de algunos módulos .ko.zst disponibles (ejemplos de drivers) ---
+/lib/modules/6.11.0-26-generic/kernel/drivers/usb/typec/hd3ss3220.ko.zst
+/lib/modules/6.11.0-26-generic/kernel/drivers/usb/typec/altmodes/typec_displayport.ko.zst
+/lib/modules/6.11.0-26-generic/kernel/drivers/usb/typec/altmodes/typec_nvidia.ko.zst
+/lib/modules/6.11.0-26-generic/kernel/drivers/usb/typec/tipd/tps6598x.ko.zst
+/lib/modules/6.11.0-26-generic/kernel/drivers/usb/typec/tcpm/tcpm.ko.zst
+
+--- Ejemplo: Verificando 'floppy.ko.zst' ---
+Ubicación de floppy.ko.zst:
+/lib/modules/6.11.0-26-generic/kernel/drivers/block/floppy.ko.zst
+Estado de carga de 'floppy' (lsmod):
+(El módulo 'floppy' no está cargado actualmente)
+
+--- Ejemplo: Verificando 'amdgpu' (módulo cargado) ---
+Ruta del módulo 'amdgpu' según modules.dep (puede estar comprimido):
+kernel/drivers/gpu/drm/amd/amdgpu/amdgpu.ko.zst
+
+Estado de carga de 'amdgpu' (lsmod) - Salida completa de tu sistema:
+amdgpu              20025344  25
+amdxcp                 12288  1 amdgpu
+drm_exec               12288  1 amdgpu
+gpu_sched              61440  1 amdgpu
+drm_buddy              24576  1 amdgpu
+drm_suballoc_helper    20480  1 amdgpu
+drm_ttm_helper         16384  1 amdgpu
+ttm                   110592  2 amdgpu,drm_ttm_helper
+drm_display_helper    278528  1 amdgpu
+i2c_algo_bit           16384  1 amdgpu
+video                  77824  1 amdgpu
+
+--- Fin del reporte ---

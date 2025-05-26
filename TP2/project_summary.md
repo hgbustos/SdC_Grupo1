@@ -5,10 +5,12 @@ TP2 (Raíz)/
   |-- Consigna.txt
   |-- Makefile
   |-- Readme.md
+  |-- gdb_init_commands.txt
   |-- generate_sumary.py
 python/
   |-- main.py
   |-- main32.py
+  |-- server32_bridge.py
 c/
   |-- debug_main.c
   |-- gini_processor.c
@@ -26,27 +28,20 @@ asm/
 ```makefile
 # Makefile para el TP2 de Sistemas de Computación
 # Compilación cruzada Python(64) -> C/ASM(32) y Debug App (32)
+# INCLUYE: Generación de script GDB usando printf de GDB con escapes correctos
 
 # --- Herramientas ---
 NASM = nasm
 CC = gcc
 PYTHON = python3
+GDB = gdb
+PRINTF_CMD = printf # Comando printf del shell para generar el script
 
 # --- Flags ---
-# -f elf: Formato objeto para Linux
-# -g -F dwarf: Información de depuración para GDB
 ASMFLAGS = -f elf -g -F dwarf
-# -m32: Compilar para arquitectura de 32 bits
-# -g: Incluir información de depuración
-# -Wall: Mostrar todos los warnings
-# -c: Compilar a objeto, sin enlazar
-# -O0: Deshabilitar optimizaciones (mejor para depurar)
 COBJFLAGS = -m32 -g -Wall -c -O0
-# -fPIC: Generar código independiente de la posición (necesario para .so)
 CFLAGS_SO = $(COBJFLAGS) -fPIC
-# -shared: Crear una biblioteca compartida (.so)
 LDFLAGS_SO = -m32 -shared -g
-# Flags para enlazar el ejecutable de depuración (32 bits, con debug info)
 LDFLAGS_EXE = -m32 -g
 
 # --- Directorios ---
@@ -58,82 +53,107 @@ LIB_DIR = lib
 BIN_DIR = bin
 
 # --- Archivos Fuente ---
-# Excluir debug_main.c de las fuentes para la librería
 C_SOURCES_LIB = $(filter-out $(SRC_DIR_C)/debug_main.c, $(wildcard $(SRC_DIR_C)/*.c))
 ASM_SOURCES = $(wildcard $(SRC_DIR_ASM)/*.asm)
 C_DEBUG_SOURCE = $(SRC_DIR_C)/debug_main.c
 PY_MAIN = $(SRC_DIR_PY)/main.py
-PY_MAIN_32 = $(SRC_DIR_PY)/main32.py 
+PY_MAIN_32 = $(SRC_DIR_PY)/main32.py
 
 # --- Archivos Objeto ---
-# Objeto para el wrapper C de la librería
 C_OBJS_LIB = $(patsubst $(SRC_DIR_C)/%.c, $(OBJ_DIR)/%.o, $(C_SOURCES_LIB))
-# Objeto para el código ensamblador
 ASM_OBJS = $(patsubst $(SRC_DIR_ASM)/%.asm, $(OBJ_DIR)/%.o, $(ASM_SOURCES))
 
 # --- Archivos de Salida ---
-# Biblioteca compartida para Python
 LIB_TARGET = $(LIB_DIR)/libgini_processor.so
-# Ejecutable independiente para depuración con GDB
 DEBUG_TARGET = $(BIN_DIR)/debug_app
+
+# --- Archivos de Configuración GDB ---
+GDB_SCRIPT = gdb_init_commands.txt
 
 # --- Reglas ---
 
-# Regla por defecto: construir la biblioteca compartida Y el ejecutable de debug
 all: $(LIB_TARGET) $(DEBUG_TARGET)
 
 # --- Reglas de Construcción de Archivos ---
-
-# Construir la biblioteca compartida (.so)
+# (Sin cambios)
 $(LIB_TARGET): $(C_OBJS_LIB) $(ASM_OBJS)
 	@echo "MKDIR (if needed) -> $(LIB_DIR)"
 	@mkdir -p $(LIB_DIR)
 	@echo "LD (Shared Lib) -> $@"
-	$(CC) $(LDFLAGS_SO) -o $@ $^ # $^ incluye todos los .o dependientes
+	$(CC) $(LDFLAGS_SO) -o $@ $^
 
-# Construir el ejecutable de depuración (CORREGIDO)
 $(DEBUG_TARGET): $(C_DEBUG_SOURCE) $(ASM_OBJS)
 	@echo "MKDIR (if needed) -> $(BIN_DIR)"
 	@mkdir -p $(BIN_DIR)
 	@echo "LD (Debug App) -> $@"
-	# Corrección: Usar $@ para el output y $^ para las dependencias (debug_main.c y gini_calculator.o)
 	$(CC) $(LDFLAGS_EXE) -o $@ $^
 
-# Compilar objetos C para la biblioteca compartida (con -fPIC)
-# Usamos una regla específica para gini_processor.o ya que solo ese va en la .so
 $(OBJ_DIR)/gini_processor.o: $(SRC_DIR_C)/gini_processor.c $(SRC_DIR_C)/gini_processor.h
 	@echo "MKDIR (if needed) -> $(OBJ_DIR)"
 	@mkdir -p $(OBJ_DIR)
 	@echo "CC (PIC Object) -> $@"
-	$(CC) $(CFLAGS_SO) $< -o $@ # $< es la primera dependencia (gini_processor.c)
+	$(CC) $(CFLAGS_SO) $< -o $@
 
-# Ensamblar objetos ASM (regla genérica para cualquier .asm)
 $(OBJ_DIR)/%.o: $(SRC_DIR_ASM)/%.asm
 	@echo "MKDIR (if needed) -> $(OBJ_DIR)"
 	@mkdir -p $(OBJ_DIR)
 	@echo "ASM -> $@"
 	$(NASM) $(ASMFLAGS) $< -o $@
 
-# --- Reglas de Acciones (Phony) ---
 
+# --- Mejoras para Depuración (printf de GDB con escapes CORRECTOS) ---
+
+$(GDB_SCRIPT):
+	@echo "Generating GDB initialization script (Corrected GDB printf escapes): $(GDB_SCRIPT)"
+	@$(PRINTF_CMD) '%s\n' '# Auto-generated GDB commands by Makefile' > $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '# Breakpoints for analyzing C <-> ASM call in $(DEBUG_TARGET)' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '# Set disassembly flavor to Intel syntax (like NASM)' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' 'set disassembly-flavor intel' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '# Breakpoint in C, BEFORE calling ASM' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' 'break debug_main.c:29' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '# Breakpoint at the START of the ASM function' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' 'break asm/gini_calculator.asm:22' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '# Breakpoint in C, AFTER returning from ASM' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' 'break debug_main.c:33' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '# Show defined breakpoints' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' 'info break' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '# Optional: Automatically set a useful layout' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '# layout split' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' '# Inform the user via GDB printf command' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' 'printf "\\n=== Breakpoints Set Automatically ===\\n"' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' 'printf "%s", "Use '\''run'\'' to start, '\''c'\'' to continue, '\''ni'\''/'\''si'\'' for assembly steps.\\n"' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' 'printf "%s", "Inspect stack: '\''x/16xw \$\$esp'\'' or '\''x/8xw \$\$ebp'\'' (after prologue)\\n"' >> $(GDB_SCRIPT)
+	@$(PRINTF_CMD) '%s\n' 'printf "%s", "Inspect registers: '\''info registers eax ebp esp'\''\\n\\n"' >> $(GDB_SCRIPT)
+
+
+debug: $(DEBUG_TARGET) $(GDB_SCRIPT)
+	@echo "=== Iniciando GDB para $(DEBUG_TARGET) con comandos desde $(GDB_SCRIPT) ==="
+	$(GDB) -q -x $(GDB_SCRIPT) $(DEBUG_TARGET)
+
+# --- Reglas de Acciones (Phony) ---
+# (Sin cambios)
 run: $(LIB_TARGET)
 	@echo "=== Ejecutando Script Python $(PY_MAIN) ==="
 	$(PYTHON) $(PY_MAIN)
 
 run32: $(LIB_TARGET)
 	@echo "=== Ejecutando Script Python 32 bits (ctypes) $(PY_MAIN_32) ==="
-	$(PYTHON) $(PY_MAIN_32) # <--- Ejecuta main32.py
-
-debug: $(DEBUG_TARGET)
-	@echo "=== Iniciando GDB para $(DEBUG_TARGET) ==="
-	gdb $(DEBUG_TARGET)
+	$(PYTHON) $(PY_MAIN_32)
 
 clean:
 	@echo "Limpiando directorios: $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR)"
 	@rm -rf $(OBJ_DIR) $(LIB_DIR) $(BIN_DIR)
+	@echo "Eliminando script GDB: $(GDB_SCRIPT)"
+	@rm -f $(GDB_SCRIPT)
 	@echo "Limpieza completada."
 
-# Phony targets: No son archivos, son comandos
 .PHONY: all run run32 debug clean
 ```
 
@@ -293,138 +313,139 @@ except Exception as e:
 ### `python/main.py`
 
 ```python
+# python/main.py (Modificado a Client64)
 import requests
-import ctypes
 import os
 import sys
-from msl.loadlib import LoadLibrary # Usar msl-loadlib para cargar la lib 32 bits
+import platform
+from typing import Optional
 
-# --- Configuración ---
-# URL de la API del Banco Mundial para el índice GINI de Argentina (ARG)
+# --- Importar Client64 de msl-loadlib ---
+try:
+    from msl.loadlib import Client64
+    from msl.loadlib.exceptions import Server32Error
+except ImportError:
+    print("ERROR: 'msl-loadlib' no está instalado en el entorno 64-bit.")
+    print("Ejecuta: pip install msl-loadlib")
+    sys.exit(1)
+
+# --- Configuración API (sin cambios) ---
 API_URL = "https://api.worldbank.org/v2/country/ARG/indicator/SI.POV.GINI?format=json&date=2011:2023&per_page=100"
 
-# Nombre y ruta de la biblioteca C compartida (32 bits)
-LIB_NAME = 'libgini_processor.so' 
-# Construye la ruta relativa a la carpeta lib/ desde python/
-LIB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'lib', LIB_NAME)
+# --- Configuración Cliente 64-bit ---
+# Nombre del MÓDULO Python que contiene la clase Server32 (sin .py)
+# Debe apuntar al archivo que creaste en el paso 1
+SERVER_MODULE_NAME = 'server32_bridge' # Asumiendo que está en la misma carpeta python/
+# Método que definiste en GiniProcessorServer32 para manejar la petición
+SERVER_METHOD_NAME = 'process_gini_request'
 
-# --- Funciones ---
+# --- Clase Cliente 64-bit ---
+class GiniClient(Client64):
+    def __init__(self):
+        print(f"INFO [Client64]: Inicializando cliente...")
+        print(f"INFO [Client64]: Python Arch: {platform.architecture()[0]}", file=sys.stderr) # Debe ser 64bit
+        try:
+            # Apunta al módulo del servidor 32-bit
+            super().__init__(module32=SERVER_MODULE_NAME)
+            print(f"INFO [Client64]: Conectado a servidor 32-bit '{SERVER_MODULE_NAME}'.")
+        except Exception as e:
+             print(f"FATAL ERROR [Client64]: al inicializar: {type(e).__name__}: {e}", file=sys.stderr)
+             print(f"Verifica que Python 32-bit esté instalado y sea accesible, y que '{SERVER_MODULE_NAME}.py' no tenga errores.", file=sys.stderr)
+             raise
 
-def fetch_latest_gini():
-    """
-    Obtiene el valor más reciente del índice GINI para Argentina desde la API del Banco Mundial.
-
-    Returns:
-        float: El valor GINI más reciente encontrado, o None si ocurre un error.
-    """
-    print(f"Consultando API: {API_URL}")
-    try:
-        response = requests.get(API_URL, timeout=10) # Añadir timeout
-        response.raise_for_status() # Lanza excepción si hay error HTTP (4xx o 5xx)
-        
-        data = response.json()
-        
-        # La API devuelve una lista, el primer elemento [0] es metadata, el [1] son los datos
-        if len(data) < 2 or not data[1]:
-            print("Error: No se encontraron datos de indicadores en la respuesta de la API.")
+    def call_process_gini(self, gini_value: float) -> Optional[int]:
+        """Envía petición al método del servidor 32-bit."""
+        print(f"INFO [Client64]: Enviando petición '{SERVER_METHOD_NAME}' con valor: {gini_value}")
+        try:
+            # Llama al método remoto definido en SERVER_METHOD_NAME
+            result = self.request32(SERVER_METHOD_NAME, gini_value)
+            print(f"INFO [Client64]: Respuesta recibida del servidor: {result}")
+            return result
+        except Server32Error as e:
+            print(f"ERROR [Client64]: Error recibido del servidor 32-bit: {e}", file=sys.stderr)
+            return None
+        except Exception as e:
+            print(f"ERROR [Client64]: Error de comunicación: {type(e).__name__}: {e}", file=sys.stderr)
             return None
 
-        # Buscar el valor no nulo más reciente
+# --- Instancia Singleton del Cliente ---
+_gini_client_instance = None
+
+def get_client() -> Optional[GiniClient]:
+    global _gini_client_instance
+    if _gini_client_instance is None:
+        try:
+            _gini_client_instance = GiniClient()
+        except Exception:
+             # El error ya se imprimió en __init__
+             _gini_client_instance = None # Asegura que siga None
+    return _gini_client_instance
+
+# --- Funciones fetch_latest_gini (sin cambios) ---
+def fetch_latest_gini():
+    # ... (tu código existente para la API) ...
+    print(f"Consultando API: {API_URL}")
+    try:
+        response = requests.get(API_URL, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        if len(data) < 2 or not data[1]:
+            print("Error: No se encontraron datos de indicadores.")
+            return None
         latest_value = None
         latest_year = 0
         for entry in data[1]:
-            if entry.get('value') is not None: # Usar .get() para seguridad
+            if entry.get('value') is not None:
                 try:
                     year = int(entry['date'])
                     value = float(entry['value'])
                     if year > latest_year:
                         latest_year = year
                         latest_value = value
-                except (ValueError, TypeError):
-                    # Ignorar entradas con formato inválido
-                    continue 
-        
+                except (ValueError, TypeError): continue
         if latest_value is not None:
-            print(f"Valor GINI más reciente encontrado ({latest_year}): {latest_value:.2f}")
-            return latest_value 
+            print(f"Valor GINI más reciente ({latest_year}): {latest_value:.2f}")
+            return latest_value
         else:
-            print("Error: No se encontraron valores GINI válidos en el rango de fechas.")
+            print("Error: No se encontraron valores GINI válidos.")
             return None
+    except Exception as e:
+        print(f"Error en API o JSON: {e}")
+        return None
 
-    except requests.exceptions.Timeout:
-        print(f"Error: Timeout al conectar con la API.")
-        return None
-    except requests.exceptions.RequestException as e:
-        print(f"Error al conectar con la API: {e}")
-        return None
-    except (ValueError, IndexError, TypeError, KeyError) as e:
-         print(f"Error procesando la respuesta JSON: {e}")
+# --- Función para llamar a C/ASM vía Cliente/Servidor ---
+def call_c_asm_via_client(gini_float):
+    if gini_float is None:
+         print("Valor GINI inválido, no se puede procesar.")
          return None
 
+    client = get_client()
+    if client is None:
+         print("ERROR: Cliente 64-bit no disponible. No se puede procesar.")
+         return None
 
-def call_c_function(gini_float):
-    """
-    Carga la biblioteca C de 32 bits y llama a la función process_gini_c 
-    usando msl-loadlib.
-
-    Args:
-        gini_float (float): El valor GINI a procesar.
-
-    Returns:
-        int: El resultado devuelto por la función C (que llama a ASM), o None si falla.
-    """
-    if gini_float is None:
-        print("No se puede llamar a la función C sin un valor GINI válido.")
-        return None
-            
-    try:
-        print(f"Cargando biblioteca C (32-bit) desde: {LIB_PATH} usando msl-loadlib")
-        
-        # LINEA CONFLICTIVA! no lo pude hacer andar en mi compu
-        with LoadLibrary(LIB_PATH, libtype='cdll') as lib_wrapper:
-            lib_c = lib_wrapper.lib # Acceder al objeto library real
-
-            # Definir el prototipo de la función C/ASM
-            process_gini_func = lib_c.process_gini_c
-            process_gini_func.argtypes = [ctypes.c_float]
-            process_gini_func.restype = ctypes.c_int
-            
-            # Llamar a la función C (que llamará a ASM)
-            print(f"Llamando a C/ASM: process_gini_c({gini_float:.2f})")
-            result_int = process_gini_func(ctypes.c_float(gini_float))
-            
-            print(f"Resultado recibido de C/ASM: {result_int}")
-            return result_int
-
-    except FileNotFoundError:
-        print(f"Error Crítico: No se encontró la biblioteca C en '{LIB_PATH}'.")
-        print("Verifica que la ruta sea correcta y que hayas compilado la biblioteca (ej. 'make all').")
-        return None
-    except Exception as e: # Captura otros errores de msl-loadlib o ctypes
-        print(f"Error al cargar o interactuar con la biblioteca C '{LIB_PATH}': {e}")
-        print("Asegúrate de haber compilado la biblioteca C correctamente (32 bits),")
-        print("tener 'msl-loadlib' instalado y un intérprete Python de 32 bits disponible en el sistema.")
-        return None
+    # Llama al método del cliente que hace la petición al servidor
+    result_int = client.call_process_gini(gini_float)
+    return result_int
 
 # --- Ejecución Principal ---
-
 if __name__ == "__main__":
-    print("--- Iniciando TP2 Sistemas de Computación ---")
-    
-    # 1. Obtener datos de la API
+    print("--- Iniciando TP2 (Client/Server) ---")
     gini_value = fetch_latest_gini()
-    
-    # 2. Si obtuvimos datos, llamar a la función C/ASM
+
     if gini_value is not None:
-        final_result = call_c_function(gini_value)
-        
+        final_result = call_c_asm_via_client(gini_value)
         if final_result is not None:
-            print(f"\n>> Resultado final (GINI {gini_value:.2f} procesado por C->ASM): {final_result}")
+            print(f"\n>> Resultado final (GINI {gini_value:.2f} procesado por C->ASM vía Server32): {final_result}")
         else:
-            print("\n>> No se pudo obtener el resultado final de la función C/ASM.")
+            print("\n>> Fallo al obtener resultado del procesamiento C/ASM.")
     else:
         print("\n>> No se pudo obtener el valor GINI de la API.")
-        
+
+    # Opcional: Cerrar explícitamente el cliente/servidor si es necesario
+    # client = get_client()
+    # if client: client.shutdown_server32()
+
     print("\n--- Fin TP2 ---")
 ```
 
@@ -583,6 +604,77 @@ if __name__ == "__main__":
         print("\n>> No se pudo obtener el valor GINI de la API.")
         
     print("\n--- Fin TP2 (Versión 32 bits) ---")
+```
+
+---
+
+### `python/server32_bridge.py`
+
+```python
+# python/server32_bridge.py (Adaptado para TU C/ASM)
+import os
+import ctypes
+import sys
+import platform
+
+try:
+    from msl.loadlib import Server32
+except ImportError:
+    print("ERROR [Server32]: msl-loadlib no encontrado en entorno Python 32-bit.", file=sys.stderr)
+    sys.exit(1)
+
+# --- Configuración ---
+LIB_FILENAME = 'libgini_processor.so'
+# El nombre de TU función C wrapper
+C_FUNCTION_NAME = 'process_gini_c' # <--- TU función
+
+# Ruta a TU librería (asumiendo que server32_bridge está en python/)
+SERVER_DIR = os.path.dirname(__file__)
+# Sube un nivel desde 'python' para llegar a 'TP2', luego entra a 'lib'
+LIB_DIR = os.path.abspath(os.path.join(SERVER_DIR, '..', 'lib'))
+LIBRARY_PATH = os.path.join(LIB_DIR, LIB_FILENAME)
+
+print(f"INFO [Server32]: Intentando cargar lib desde: {LIBRARY_PATH}", file=sys.stderr)
+
+class GiniProcessorServer32(Server32):
+    def __init__(self, host, port, **kwargs):
+        print(f"INFO [Server32]: Inicializando servidor...", file=sys.stderr)
+        print(f"INFO [Server32]: Python Arch: {platform.architecture()[0]}", file=sys.stderr) # Debe ser 32bit
+
+        if not os.path.exists(LIBRARY_PATH):
+             error_msg = f"FATAL ERROR [Server32]: Librería '{LIBRARY_PATH}' no encontrada."
+             print(error_msg, file=sys.stderr)
+             raise FileNotFoundError(error_msg)
+
+        try:
+            # Carga TU librería (asumiendo cdecl)
+            super().__init__(LIBRARY_PATH, 'cdll', host, port, **kwargs)
+            print(f"INFO [Server32]: Librería '{LIB_FILENAME}' cargada.", file=sys.stderr)
+
+            # --- Definir firma de TU función C ---
+            c_func = getattr(self.lib, C_FUNCTION_NAME)
+            # TU función recibe un float
+            c_func.argtypes = [ctypes.c_float]
+            # TU función devuelve un int
+            c_func.restype = ctypes.c_int
+            print(f"INFO [Server32]: Firma definida para '{C_FUNCTION_NAME}'.", file=sys.stderr)
+
+        except Exception as e:
+            print(f"ERROR [Server32]: durante inicialización: {type(e).__name__}: {e}", file=sys.stderr)
+            raise
+
+    # --- Método expuesto al Client64 ---
+    # El nombre debe coincidir con lo que llama el cliente
+    def process_gini_request(self, gini_float_value):
+        print(f"INFO [Server32]: Recibida petición process_gini_request({gini_float_value})", file=sys.stderr)
+        try:
+            # Llama a TU función C 'process_gini_c'
+            result = self.lib.process_gini_c(ctypes.c_float(gini_float_value))
+            print(f"INFO [Server32]: Función C devolvió: {result}", file=sys.stderr)
+            return result # Devuelve el int al Client64
+        except Exception as e:
+            print(f"ERROR [Server32]: al llamar a C '{C_FUNCTION_NAME}': {type(e).__name__}: {e}", file=sys.stderr)
+            raise # Propaga error al cliente
 ```
 
 ---
