@@ -1,0 +1,1 @@
+savedcmd_/home/javi/Documentos/SdC_TP1/TP4/practico/01_modulo_profesor/Module.symvers :=  scripts/mod/modpost -M -m -a      -o /home/javi/Documentos/SdC_TP1/TP4/practico/01_modulo_profesor/Module.symvers -T /home/javi/Documentos/SdC_TP1/TP4/practico/01_modulo_profesor/modules.order -i Module.symvers -e 
