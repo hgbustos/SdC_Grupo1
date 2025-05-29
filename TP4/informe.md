@@ -280,6 +280,7 @@ La salida de `lsmod` muestra los módulos activos en el sistema. Se adjuntan las
 *   `practico/02_system_info/lsmod_javi.txt`
 *   `practico/02_system_info/lsmod_gabriel.txt`
 *   `practico/02_system_info/lsmod_diff.txt`
+*   `practico/02_system_info/lsmod_facundo.txt`
 
 Las diferencias entre las salidas de `lsmod` de distintos integrantes se deben principalmente a:
 *   **Hardware diferente:** Cada PC tiene componentes distintos (tarjeta gráfica, de red, sonido, etc.), lo que resulta en la carga de drivers (módulos) específicos para ese hardware.
